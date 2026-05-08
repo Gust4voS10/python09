@@ -1,12 +1,11 @@
 try:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field, ValidationError
 except ModuleNotFoundError:
     print("use pip install pydantic")
     exit(1)
 
-
-from datetime import datetime
 from typing import Optional
+
 
 class Station(BaseModel):
     station_id: str = Field(min_length=3, max_length=10)
@@ -14,7 +13,7 @@ class Station(BaseModel):
     crew_size: int = Field(ge=1, le=20)
     power_level: float = Field(ge=0, le=100)
     oxygen_level: float = Field(ge=0, le=100)
-    last_maintenance: datetime = datetime
+    last_maintenance: str = ""
     is_operational: bool = Field(default=True)
     notes: Optional[str] = Field(default=None)
 
@@ -42,6 +41,7 @@ def main() -> None:
     if (s1.notes):
         print(f"Notes: {s1.notes}")
     print("\n=============================")
+    print("Expected validation error:")
     try:
         s2: Station = Station(station_id="ISS67",
                               name="Interestellar",
@@ -60,8 +60,8 @@ def main() -> None:
             print("Status: Inactive")
         if (s2.notes):
             print(f"Notes: {s2.notes}")
-    except Exception as e:
-        print(e)
+    except ValidationError as e:
+        print(e.errors()[0]["msg"])
 
 
 if __name__ == "__main__":

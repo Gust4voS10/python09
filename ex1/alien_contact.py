@@ -1,10 +1,10 @@
 try:
-    from pydantic import BaseModel, Field, model_validator
+    from pydantic import (BaseModel, Field, model_validator,
+                          ValidationError)
 except ModuleNotFoundError:
     print("Use pip intall pydantic")
     exit(1)
 
-from datetime import datetime
 from typing import Optional
 from enum import Enum
 
@@ -18,7 +18,7 @@ class ContactType(Enum):
 
 class AlienContact(BaseModel):
     contact_id: str = Field(min_length=5, max_length=15)
-    timestamp: datetime
+    timestamp: str
     location: str = Field(min_length=3, max_length=100)
     contact_type: ContactType
     signal_strength: float = Field(ge=0, le=10)
@@ -36,7 +36,8 @@ class AlienContact(BaseModel):
             raise ValueError("A physical contact must be veified")
         if ((self.contact_type.name == "telepathic") and
                 (self.witness_count < 3)):
-            raise ValueError("That's not enough witnesses")
+            raise ValueError("Telepathic contact requires at least 3 witnesses"
+                             )
         if ((self.signal_strength > 7) and (self.message_received is None)):
             raise ValueError("A strong telepathic contact like that "
                              "must have an message")
@@ -46,11 +47,11 @@ class AlienContact(BaseModel):
 def main() -> None:
     print("Alien Contact Log Validation")
     print("=============================")
-    house: str = "Santa Cruz da Serra, Duque de Caxias - RJ"
     try:
         contact1 = AlienContact(contact_id="AC456",
                                 timestamp="2026-05-04T21:00:00",
-                                location="Observatório Nacional, Rio de Janeiro - RJ",
+                                location="Observatório Nacional, Rio de \
+Janeiro - RJ",
                                 contact_type=ContactType.visual,
                                 signal_strength=5.2,
                                 duration_minutes=15,
@@ -65,9 +66,10 @@ def main() -> None:
         print(f"Witnesses: {contact1.witness_count}")
         if (not (contact1.message_received is None)):
             print(f"Message: {contact1.message_received}")
-    except Exception as e:
-        print(e)
+    except ValidationError as e:
+        print(e.errors()[0]["msg"][13:])
     print("\n=============================")
+    print("Expected Validation error:")
     try:
         contact2 = AlienContact(contact_id="AC789",
                                 timestamp="2026-05-05T03:15:00",
@@ -75,7 +77,7 @@ def main() -> None:
                                 contact_type=ContactType.telepathic,
                                 signal_strength=8.1,
                                 duration_minutes=25,
-                                witness_count=5,
+                                witness_count=2,
                                 message_received="Estamos em paz",
                                 is_verified=True)
         print("Valid contact report:")
@@ -86,8 +88,8 @@ def main() -> None:
         print(f"Witnesses: {contact2.witness_count}")
         if (not (contact2.message_received is None)):
             print(f"Message: {contact2.message_received}")
-    except Exception as e:
-        print(e)
+    except ValidationError as e:
+        print(e.errors()[0]["msg"][13:])
 
 
 if (__name__ == "__main__"):
